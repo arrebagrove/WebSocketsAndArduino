@@ -1,0 +1,65 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <title>bi-directional communication</title>
+    <link href="http://rubenc.dk/resources/examples.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<p>
+
+<div id="output"><input title="socketvalue" type="text" id="valueDisplay"></div>
+</p>
+<div id="header">
+    <h2>Real-time updates</h2>
+</div>
+
+<div id="content">
+
+    <div class="demo-container">
+        <div id="placeholder" class="demo-placeholder"></div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="http://rubenc.dk/resources/jquery.flot.js"></script>
+<script>
+    var serverVals = [];
+    var counter = 0;
+    var plot = $.plot($("#placeholder"), [serverVals],
+            {
+                grid: {borderWidth: 0}
+            });
+    var socket = io.connect('http://localhost:8124');
+    socket.on('news', function (data) {
+        //var html = '<p>' + data.news + '</p>';
+        var serverValue = data.news;
+        var inputField = document.getElementById("valueDisplay");
+        inputField.value = serverValue;
+
+        if (serverVals.length >= 100) {
+            serverVals.shift();
+            for(var i = 0; i < serverVals.length;i++ ){
+
+                var newIndex = serverVals[i][0] - 1;
+                var oldValue = serverVals[i][1];
+                serverVals[i] = [newIndex,oldValue];
+
+            }
+            serverVals.push([100,serverValue]);
+        }else
+        {
+            serverVals.push([counter,serverValue]);
+            counter ++
+        }
+        plot.setData([serverVals]);
+        plot.setupGrid();
+        plot.draw();
+
+        //document.getElementById("output").innerHTML=html;
+        socket.emit('echo', { back: data.news });
+    });
+</script>
+
+</body>
+</html>
